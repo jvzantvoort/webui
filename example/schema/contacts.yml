@@ -1,0 +1,46 @@
+fields:
+  - name: id
+    type: string
+    label: "ID"
+    readonly: true
+
+  - name: first_name
+    type: string
+    label: "First name"
+    required: true
+
+  - name: last_name
+    type: string
+    label: "Last name"
+    required: true
+
+  - name: email
+    type: email
+    label: "Email address"
+    required: true
+
+  - name: phone
+    type: string
+    label: "Phone number"
+
+  - name: company
+    type: string
+    label: "Company"
+
+  - name: department
+    type: string
+    label: "Department"
+    options:
+      - Engineering
+      - Finance
+      - HR
+      - Marketing
+      - Operations
+      - Sales
+
+  - name: active
+    type: string
+    label: "Active"
+    options:
+      - "yes"
+      - "no"

@@ -1,0 +1,63 @@
+{{/* navitem renders a plain nav-link or a Bootstrap dropdown depending on Children. */}}
+{{define "navitem"}}
+{{if .Children}}
+<li class="nav-item dropdown">
+  <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+    {{.Label}}
+  </a>
+  <ul class="dropdown-menu dropdown-menu-dark">
+    {{range .Children}}
+    <li><a class="dropdown-item" href="{{.URL}}">{{.Label}}</a></li>
+    {{end}}
+  </ul>
+</li>
+{{else}}
+<li class="nav-item">
+  <a class="nav-link" href="{{.URL}}">{{.Label}}</a>
+</li>
+{{end}}
+{{end}}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{block "title" .}}webui{{end}}</title>
+  <link rel="stylesheet" href="/static/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="bg-light">
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
+  <div class="container-fluid">
+    <a class="navbar-brand fw-semibold" href="/">webui</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav"
+            aria-controls="mainNav" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="mainNav">
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        {{range .Nav.Data}}{{template "navitem" .}}{{end}}
+        {{if and .Nav.Data .Nav.Content}}
+        <li class="nav-item"><span class="nav-link disabled px-1 text-secondary">|</span></li>
+        {{end}}
+        {{range .Nav.Content}}{{template "navitem" .}}{{end}}
+      </ul>
+      <button class="btn btn-outline-danger btn-sm" onclick="stopServer()" title="Stop server and close tab">
+        &#9632; Stop
+      </button>
+    </div>
+  </div>
+</nav>
+
+<main class="py-4">
+  <div class="container-fluid">
+    {{block "content" .}}{{end}}
+  </div>
+</main>
+
+<script src="/static/js/bootstrap.bundle.min.js"></script>
+<script src="/static/js/main.js"></script>
+</body>
+</html>

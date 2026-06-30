@@ -1,0 +1,38 @@
+{{define "title"}}{{.Title}} — webui{{end}}
+
+{{define "content"}}
+<div class="d-flex align-items-center justify-content-between mb-3">
+  <h1 class="h3 mb-0">{{.Title}}</h1>
+  <a href="." class="btn btn-outline-secondary btn-sm">← Back</a>
+</div>
+<div class="card shadow-sm">
+  <div class="card-body">
+    <form method="POST" action="{{.PostURL}}" novalidate>
+      {{range .Fields}}
+      <div class="mb-3">
+        <label class="form-label fw-semibold" for="field-{{.Name}}">
+          {{.Label}}{{if .Required}}<span class="text-danger ms-1" aria-hidden="true">*</span>{{end}}
+        </label>
+        {{if .Readonly}}
+          <input type="text" class="form-control bg-light text-muted" id="field-{{.Name}}"
+                 name="{{.Name}}" value="{{.Value}}" readonly>
+        {{else if .Options}}
+          <select class="form-select" id="field-{{.Name}}" name="{{.Name}}"{{if .Required}} required{{end}}>
+            {{range .Options}}
+            <option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{.Value}}</option>
+            {{end}}
+          </select>
+        {{else}}
+          <input type="{{.InputType}}" class="form-control" id="field-{{.Name}}"
+                 name="{{.Name}}" value="{{.Value}}"{{if .Required}} required{{end}}>
+        {{end}}
+      </div>
+      {{end}}
+      <div class="d-flex gap-2 pt-3 border-top mt-3">
+        <button type="submit" class="btn btn-primary">Save changes</button>
+        <a href="." class="btn btn-outline-secondary">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{{end}}

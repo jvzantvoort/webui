@@ -1,0 +1,11 @@
+id,first_name,last_name,email,phone,company,department,active
+1,Alice,Harding,alice.harding@example.com,+1-555-0101,Acme Corp,Finance,yes
+2,Bob,Steele,bob.steele@example.com,+1-555-0102,Acme Corp,Marketing,yes
+3,Carol,Nguyen,carol.nguyen@example.com,+1-555-0103,Acme Corp,HR,yes
+4,David,Okafor,david.okafor@example.com,+1-555-0104,Acme Corp,Sales,yes
+5,Eva,Muller,eva.muller@example.com,+49-30-555-0105,Partner GmbH,Engineering,yes
+6,Frank,Santos,frank.santos@example.com,+1-555-0106,Acme Corp,Finance,no
+7,Grace,Kim,grace.kim@example.com,+1-555-0107,Acme Corp,Engineering,yes
+8,Henry,Petrov,henry.petrov@example.com,+7-495-555-0108,Partner GmbH,Operations,yes
+9,Iris,Chen,iris.chen@example.com,+1-555-0109,Acme Corp,Marketing,yes
+10,James,Osei,james.osei@example.com,+1-555-0110,Acme Corp,Sales,no

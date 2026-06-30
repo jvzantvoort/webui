@@ -1,0 +1,47 @@
+fields:
+  - name: id
+    type: string
+    label: "ID"
+    readonly: true
+
+  - name: name
+    type: string
+    label: "Project name"
+    required: true
+
+  - name: status
+    type: string
+    label: "Status"
+    required: true
+    options:
+      - Planning
+      - Active
+      - On Hold
+      - Completed
+      - Cancelled
+
+  - name: priority
+    type: string
+    label: "Priority"
+    options:
+      - Low
+      - Medium
+      - High
+      - Critical
+
+  - name: owner
+    type: string
+    label: "Owner"
+    required: true
+
+  - name: start_date
+    type: date
+    label: "Start date"
+
+  - name: end_date
+    type: date
+    label: "End date"
+
+  - name: description
+    type: string
+    label: "Description"

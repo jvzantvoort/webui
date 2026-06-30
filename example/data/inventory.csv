@@ -1,0 +1,13 @@
+id,sku,name,category,quantity,unit_price,supplier,last_updated
+1,DESK-001,Standing Desk (Oak),Furniture,12,649.00,OfficeWorld Ltd,2024-03-10
+2,CHAIR-001,Ergonomic Chair,Furniture,24,399.00,OfficeWorld Ltd,2024-03-10
+3,LAPTP-001,"Laptop 15"" (i7)",Computing,8,1299.00,TechSupply Co,2024-03-15
+4,LAPTP-002,"Laptop 13"" (M3)",Computing,5,1099.00,TechSupply Co,2024-03-15
+5,MON-001,"27"" 4K Monitor",Computing,15,529.00,TechSupply Co,2024-02-28
+6,HDST-001,Noise-Cancelling Headset,Peripherals,30,189.00,AudioGear BV,2024-01-20
+7,KBRD-001,Mechanical Keyboard,Peripherals,20,129.00,AudioGear BV,2024-01-20
+8,MOUSE-001,Wireless Mouse,Peripherals,35,59.00,AudioGear BV,2024-01-20
+9,WEBCAM-001,HD Webcam 1080p,Peripherals,18,89.00,AudioGear BV,2024-02-05
+10,SWTCH-001,24-Port Network Switch,Networking,4,349.00,NetEquip GmbH,2024-03-01
+11,RCKMT-001,42U Server Rack,Networking,2,1850.00,NetEquip GmbH,2024-03-01
+12,PAPER-A4,A4 Paper (500 sheets),Stationery,200,8.50,QuickOffice,2024-03-18

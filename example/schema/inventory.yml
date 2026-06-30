@@ -1,0 +1,43 @@
+fields:
+  - name: id
+    type: string
+    label: "ID"
+    readonly: true
+
+  - name: sku
+    type: string
+    label: "SKU"
+    readonly: true
+
+  - name: name
+    type: string
+    label: "Product name"
+    required: true
+
+  - name: category
+    type: string
+    label: "Category"
+    options:
+      - Computing
+      - Furniture
+      - Networking
+      - Peripherals
+      - Stationery
+
+  - name: quantity
+    type: number
+    label: "Quantity"
+    required: true
+
+  - name: unit_price
+    type: number
+    label: "Unit price (€)"
+    required: true
+
+  - name: supplier
+    type: string
+    label: "Supplier"
+
+  - name: last_updated
+    type: date
+    label: "Last updated"

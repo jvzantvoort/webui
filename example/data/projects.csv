@@ -1,0 +1,11 @@
+id,name,status,priority,owner,start_date,end_date,description
+1,Website Redesign,Active,High,Alice Harding,2024-01-15,2024-06-30,Full redesign of the public-facing website including new branding
+2,CRM Migration,Completed,Critical,Bob Steele,2023-09-01,2024-02-28,Migrate customer data from legacy system to new CRM platform
+3,Mobile App v2,Planning,High,Grace Kim,2024-04-01,2024-12-31,Second major release of the iOS and Android applications
+4,HR Portal,Active,Medium,Carol Nguyen,2024-02-01,2024-08-31,Self-service HR portal for leave requests and payslips
+5,Security Audit,Completed,Critical,Henry Petrov,2024-01-01,2024-03-31,Annual penetration test and remediation of findings
+6,Data Warehouse,Active,High,Eva Muller,2024-03-01,2025-01-31,Centralised analytics data warehouse on cloud infrastructure
+7,Office Expansion,On Hold,Low,Frank Santos,2024-05-01,2024-11-30,New office fit-out in the downtown location
+8,API Gateway,Planning,Medium,Grace Kim,2024-06-01,2024-10-31,Unified API gateway replacing point-to-point service integrations
+9,Customer Portal,Active,High,Iris Chen,2024-02-15,2024-09-30,Self-service portal for customer orders and support tickets
+10,Compliance Training,Completed,Medium,Carol Nguyen,2024-01-08,2024-01-31,Mandatory annual compliance and data-privacy training rollout

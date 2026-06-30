@@ -1,0 +1,32 @@
+{{define "title"}}webui{{end}}
+
+{{define "content"}}
+{{if or .Nav.Data .Nav.Content}}
+<div class="row g-3">
+  {{range .Nav.Data}}
+  <div class="col-sm-6 col-md-4 col-lg-3">
+    <a class="card h-100 text-decoration-none text-dark card-hover" href="{{.URL}}">
+      <div class="card-body">
+        <h5 class="card-title mb-1">{{.Label}}</h5>
+        <span class="badge bg-primary">data</span>
+      </div>
+    </a>
+  </div>
+  {{end}}
+  {{range .Nav.Content}}
+  <div class="col-sm-6 col-md-4 col-lg-3">
+    <a class="card h-100 text-decoration-none text-dark card-hover" href="{{.URL}}">
+      <div class="card-body">
+        <h5 class="card-title mb-1">{{.Label}}</h5>
+        <span class="badge bg-secondary">content</span>
+      </div>
+    </a>
+  </div>
+  {{end}}
+</div>
+{{else}}
+<div class="alert alert-info">
+  No sections configured yet. Run <code>webui init</code> to generate a starter config.
+</div>
+{{end}}
+{{end}}

@@ -1,0 +1,30 @@
+server:
+  port: 3110
+  index: README.md
+
+browser:
+  application: firefox
+  autostart: true
+
+content:
+  - name: "help"
+    path: help/
+    content: markdown
+    serve_images: false
+    menu: "Help"
+
+data:
+  - name: "contacts"
+    path: data/contacts.csv
+    schema: schema/contacts.yml
+    menu: "Data / Contacts"
+
+  - name: "projects"
+    path: data/projects.csv
+    schema: schema/projects.yml
+    menu: "Data / Projects"
+
+  - name: "inventory"
+    path: data/inventory.csv
+    schema: schema/inventory.yml
+    menu: "Data / Inventory"
