@@ -52,14 +52,42 @@ Each entry under `data:` defines a CSV file with a CRUD table.
 
 ```yaml
 data:
-  - name: "contacts"             # URL segment: /contacts/
-    path: data/contacts.csv      # CSV file path (relative to working directory)
-    schema: schema/contacts.yml  # optional schema file
-    menu: "Data / Contacts"      # label shown in the navigation bar
+  - name: "contacts"                          # URL segment: /contacts/
+    path: data/contacts.csv                   # CSV file path (relative to working directory)
+    schema: schema/contacts.yml               # optional: controls the edit form
+    record_template: templates/contact.html   # optional: custom record view
+    menu: "Data / Contacts"                   # label shown in the navigation bar
 ```
 
 The `menu` value may use ` / ` as a visual separator; it does not create
 nested routes — it is purely a display label.
+
+### record_template
+
+When `record_template` is set, clicking **View** on a data row renders that
+record using the template file instead of the default definition list.
+
+The template is a standard Go `html/template` fragment (not a full page — the
+navbar and layout are provided by webui).  Column values are available as
+top-level dot keys matching the CSV header names exactly:
+
+```html
+<h3>{{.first_name}} {{.last_name}}</h3>
+<p>{{.email}}</p>
+```
+
+For column names that are not valid Go identifiers (e.g. contain spaces), use
+the `index` function instead:
+
+```html
+<p>{{index . "unit price"}}</p>
+```
+
+Values are HTML-escaped automatically.  The template may use any Bootstrap
+classes since the Bootstrap CSS is always loaded by the base layout.
+
+Navigation buttons (← Back, ‹ Prev, Next ›, Edit) are provided by the layout
+and do not need to be included in the template file.
 
 ## Schema file format
 

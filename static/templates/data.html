@@ -19,7 +19,8 @@
         <tr>
           {{range .Cells}}<td>{{.}}</td>{{end}}
           <td class="text-end text-nowrap">
-            <a href="?action=edit&row={{.Idx}}" class="btn btn-outline-secondary btn-sm">Edit</a>
+            <a href="?action=view&row={{.Idx}}" class="btn btn-outline-info btn-sm">View</a>
+            <a href="?action=edit&row={{.Idx}}" class="btn btn-outline-secondary btn-sm ms-1">Edit</a>
             <button class="btn btn-outline-danger btn-sm ms-1" data-confirm="Delete this row?">Delete</button>
           </td>
         </tr>

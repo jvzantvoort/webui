@@ -1,0 +1,36 @@
+{{define "title"}}{{.Title}} — webui{{end}}
+
+{{define "content"}}
+<div class="d-flex align-items-center justify-content-between mb-3">
+  <h1 class="h3 mb-0">{{.Title}}</h1>
+  <div class="d-flex gap-2">
+    <a href="." class="btn btn-outline-secondary btn-sm">← Back</a>
+    {{if .PrevIdx}}
+    <a href="?action=view&row={{.PrevIdx}}" class="btn btn-outline-secondary btn-sm">‹ Prev</a>
+    {{else}}
+    <button class="btn btn-outline-secondary btn-sm" disabled>‹ Prev</button>
+    {{end}}
+    {{if .NextIdx}}
+    <a href="?action=view&row={{.NextIdx}}" class="btn btn-outline-secondary btn-sm">Next ›</a>
+    {{else}}
+    <button class="btn btn-outline-secondary btn-sm" disabled>Next ›</button>
+    {{end}}
+    <a href="?action=edit&row={{.RowIdx}}" class="btn btn-primary btn-sm">Edit</a>
+  </div>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-body">
+    {{if .Body}}
+    {{.Body}}
+    {{else}}
+    <dl class="row mb-0">
+      {{range .Fields}}
+      <dt class="col-sm-3 text-muted fw-normal">{{.Label}}</dt>
+      <dd class="col-sm-9 fw-semibold">{{if .Value}}{{.Value}}{{else}}<span class="text-muted fst-italic">—</span>{{end}}</dd>
+      {{end}}
+    </dl>
+    {{end}}
+  </div>
+</div>
+{{end}}

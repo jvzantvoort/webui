@@ -32,6 +32,11 @@ func (c *Config) Validate() error {
 				errs = append(errs, err.Error())
 			}
 		}
+		if item.RecordTemplate != "" {
+			if err := expectFile(item.RecordTemplate, fmt.Sprintf("data %q record_template", item.Name)); err != nil {
+				errs = append(errs, err.Error())
+			}
+		}
 	}
 
 	if len(errs) > 0 {

@@ -162,6 +162,133 @@ func TestMethodNotAllowed(t *testing.T) {
 	}
 }
 
+// ── view handler tests ────────────────────────────────────────────────────
+
+func TestViewRendered(t *testing.T) {
+	_, csvPath := writeCSVFile(t, testCSV)
+	h := NewHandler(config.DataItem{Name: "test", Path: csvPath}, newTestRenderer(t))
+
+	req := httptest.NewRequest(http.MethodGet, "/data/test/?action=view&row=1", nil)
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", w.Code)
+	}
+	body := w.Body.String()
+	if !strings.Contains(body, "alpha") {
+		t.Errorf("view missing field value 'alpha': %s", body)
+	}
+	// Prev should be disabled (first data row), Next should link to row 2.
+	if !strings.Contains(body, "row=2") {
+		t.Errorf("view missing next link to row 2: %s", body)
+	}
+}
+
+func TestViewPrevNext(t *testing.T) {
+	csv := "a,b\nfirst,1\nsecond,2\nthird,3\n"
+	_, csvPath := writeCSVFile(t, csv)
+	h := NewHandler(config.DataItem{Name: "test", Path: csvPath}, newTestRenderer(t))
+
+	// Middle row: expect both prev and next links.
+	req := httptest.NewRequest(http.MethodGet, "/data/test/?action=view&row=2", nil)
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d", w.Code)
+	}
+	body := w.Body.String()
+	if !strings.Contains(body, "row=1") {
+		t.Errorf("middle row missing prev link (row=1): %s", body)
+	}
+	if !strings.Contains(body, "row=3") {
+		t.Errorf("middle row missing next link (row=3): %s", body)
+	}
+}
+
+func TestViewSkipsEmptyRows(t *testing.T) {
+	// Go's csv.Reader silently drops blank lines, so use an all-empty-cells row
+	// ("," for a 2-column CSV) to produce a real empty row that survives parsing.
+	content := "a,b\nfirst,1\n,\nthird,3\n"
+	_, csvPath := writeCSVFile(t, content)
+	h := NewHandler(config.DataItem{Name: "test", Path: csvPath}, newTestRenderer(t))
+
+	// Row 1 → next non-empty is row 3 (row 2 is all-empty cells).
+	req := httptest.NewRequest(http.MethodGet, "/data/test/?action=view&row=1", nil)
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d", w.Code)
+	}
+	if !strings.Contains(w.Body.String(), "row=3") {
+		t.Errorf("next link should skip empty row 2 and point to row=3: %s", w.Body.String())
+	}
+}
+
+func TestViewInvalidRow(t *testing.T) {
+	_, csvPath := writeCSVFile(t, testCSV)
+	h := NewHandler(config.DataItem{Name: "test", Path: csvPath}, newTestRenderer(t))
+
+	for _, param := range []string{"0", "999", "abc", ""} {
+		req := httptest.NewRequest(http.MethodGet, "/data/test/?action=view&row="+param, nil)
+		w := httptest.NewRecorder()
+		h.ServeHTTP(w, req)
+		if w.Code == http.StatusOK {
+			t.Errorf("row=%q: expected non-200, got 200", param)
+		}
+	}
+}
+
+func TestViewCustomTemplate(t *testing.T) {
+	dir, csvPath := writeCSVFile(t, testCSV)
+
+	// Write a simple record template file.
+	tmplPath := filepath.Join(dir, "record.html")
+	if err := os.WriteFile(tmplPath, []byte(`<p class="custom">{{.name}}: {{.value}}</p>`), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	h := NewHandler(config.DataItem{
+		Name:           "test",
+		Path:           csvPath,
+		RecordTemplate: tmplPath,
+	}, newTestRenderer(t))
+
+	req := httptest.NewRequest(http.MethodGet, "/data/test/?action=view&row=1", nil)
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d", w.Code)
+	}
+	body := w.Body.String()
+	if !strings.Contains(body, `class="custom"`) {
+		t.Errorf("custom template output missing in response: %s", body)
+	}
+	if !strings.Contains(body, "alpha") {
+		t.Errorf("custom template missing field value 'alpha': %s", body)
+	}
+}
+
+func TestViewCustomTemplateMissingFile(t *testing.T) {
+	_, csvPath := writeCSVFile(t, testCSV)
+	h := NewHandler(config.DataItem{
+		Name:           "test",
+		Path:           csvPath,
+		RecordTemplate: "/nonexistent/record.html",
+	}, newTestRenderer(t))
+
+	req := httptest.NewRequest(http.MethodGet, "/data/test/?action=view&row=1", nil)
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, req)
+
+	if w.Code != http.StatusInternalServerError {
+		t.Errorf("status = %d, want 500", w.Code)
+	}
+}
+
 // ── readCSV failure-mode regression tests ─────────────────────────────────
 
 // TestReadCSVBOM verifies that a UTF-8 BOM prepended by Excel does not corrupt

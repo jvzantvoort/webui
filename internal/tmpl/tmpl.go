@@ -53,12 +53,15 @@ type FormField struct {
 type PageData struct {
 	Nav     Nav
 	Title   string
-	Body    template.HTML // content pages: rendered markdown
-	Headers []string      // data list pages: CSV header row
-	Rows    []IndexedRow  // data list pages: CSV data rows with index
-	Fields  []FormField   // form pages: fields to render
-	RowIdx  int           // form pages: 1-based row being edited
-	PostURL string        // form pages: form action URL
+	Body    template.HTML     // content pages: rendered markdown; view pages: custom record template output
+	Headers []string          // data list pages: CSV header row
+	Rows    []IndexedRow      // data list pages: CSV data rows with index
+	Fields  []FormField       // form/view pages: fields with labels and values
+	RowIdx  int               // form/view pages: 1-based index of the current row
+	PostURL string            // form pages: form action URL
+	PrevIdx int               // view pages: row index of the previous record (0 = none)
+	NextIdx int               // view pages: row index of the next record (0 = none)
+	Record  map[string]string // view pages: column→value map for the current record
 }
 
 // Renderer parses and executes page templates, injecting shared nav data.
@@ -70,7 +73,7 @@ type Renderer struct {
 	nav   Nav
 }
 
-var pageNames = []string{"index.html", "content.html", "data.html", "form.html"}
+var pageNames = []string{"index.html", "content.html", "data.html", "form.html", "view.html"}
 
 // New creates a Renderer from the embedded template FS and the app config.
 func New(cfg *config.Config) (*Renderer, error) {

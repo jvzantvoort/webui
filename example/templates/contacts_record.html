@@ -1,0 +1,43 @@
+<div class="row g-4">
+
+  <div class="col-md-4">
+    <div class="card h-100 border-0 bg-dark text-white text-center p-4">
+      <div class="display-1 mb-2">&#128100;</div>
+      <h3 class="mb-0">{{.first_name}} {{.last_name}}</h3>
+      <p class="text-secondary mb-2">{{.company}}</p>
+      {{if eq .active "yes"}}
+      <span class="badge bg-success mx-auto" style="width:fit-content">Active</span>
+      {{else}}
+      <span class="badge bg-secondary mx-auto" style="width:fit-content">Inactive</span>
+      {{end}}
+    </div>
+  </div>
+
+  <div class="col-md-8">
+    <table class="table table-borderless mb-0">
+      <tbody>
+        <tr>
+          <th class="text-muted fw-normal w-25">ID</th>
+          <td>{{.id}}</td>
+        </tr>
+        <tr>
+          <th class="text-muted fw-normal">Department</th>
+          <td><span class="badge bg-primary">{{.department}}</span></td>
+        </tr>
+        <tr>
+          <th class="text-muted fw-normal">Email</th>
+          <td><a href="mailto:{{.email}}">{{.email}}</a></td>
+        </tr>
+        <tr>
+          <th class="text-muted fw-normal">Phone</th>
+          <td>{{if .phone}}{{.phone}}{{else}}<span class="text-muted fst-italic">—</span>{{end}}</td>
+        </tr>
+        <tr>
+          <th class="text-muted fw-normal">Company</th>
+          <td>{{.company}}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>

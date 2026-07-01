@@ -1,0 +1,47 @@
+{{$statusClass := "bg-secondary"}}
+{{if eq .status "Active"}}{{$statusClass = "bg-success"}}{{end}}
+{{if eq .status "Completed"}}{{$statusClass = "bg-primary"}}{{end}}
+{{if eq .status "On Hold"}}{{$statusClass = "bg-warning text-dark"}}{{end}}
+{{if eq .status "Cancelled"}}{{$statusClass = "bg-danger"}}{{end}}
+
+{{$priorityClass := "bg-secondary"}}
+{{if eq .priority "High"}}{{$priorityClass = "bg-warning text-dark"}}{{end}}
+{{if eq .priority "Critical"}}{{$priorityClass = "bg-danger"}}{{end}}
+{{if eq .priority "Low"}}{{$priorityClass = "bg-light text-dark border"}}{{end}}
+
+<div class="mb-3 d-flex align-items-center gap-2">
+  <h4 class="mb-0">{{.name}}</h4>
+  <span class="badge {{$statusClass}}">{{.status}}</span>
+  <span class="badge {{$priorityClass}}">{{.priority}}</span>
+</div>
+
+{{if .description}}
+<p class="text-muted mb-4">{{.description}}</p>
+{{end}}
+
+<div class="row g-3">
+  <div class="col-sm-6 col-lg-3">
+    <div class="card border-0 bg-light text-center p-3">
+      <div class="small text-muted mb-1">Owner</div>
+      <div class="fw-semibold">{{if .owner}}{{.owner}}{{else}}—{{end}}</div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-lg-3">
+    <div class="card border-0 bg-light text-center p-3">
+      <div class="small text-muted mb-1">Start date</div>
+      <div class="fw-semibold">{{if .start_date}}{{.start_date}}{{else}}—{{end}}</div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-lg-3">
+    <div class="card border-0 bg-light text-center p-3">
+      <div class="small text-muted mb-1">End date</div>
+      <div class="fw-semibold">{{if .end_date}}{{.end_date}}{{else}}—{{end}}</div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-lg-3">
+    <div class="card border-0 bg-light text-center p-3">
+      <div class="small text-muted mb-1">Project ID</div>
+      <div class="fw-semibold text-muted">{{.id}}</div>
+    </div>
+  </div>
+</div>

@@ -17,11 +17,13 @@ data:
   - name: "contacts"
     path: data/contacts.csv
     schema: schema/contacts.yml
+    record_template: templates/contacts_record.html
     menu: "Data / Contacts"
 
   - name: "projects"
     path: data/projects.csv
     schema: schema/projects.yml
+    record_template: templates/projects_record.html
     menu: "Data / Projects"
 
   - name: "inventory"

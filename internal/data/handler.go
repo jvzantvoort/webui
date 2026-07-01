@@ -2,8 +2,10 @@ package data
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/csv"
 	"fmt"
+	"html/template"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -31,6 +33,8 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		switch action {
+		case "view":
+			h.view(w, r)
 		case "edit":
 			h.editForm(w, r)
 		default:
@@ -148,6 +152,94 @@ func (h *Handler) saveEdit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
+}
+
+// view renders a single record using the optional record_template, falling back
+// to a generated definition list. Prev/Next buttons allow navigating between rows.
+func (h *Handler) view(w http.ResponseWriter, r *http.Request) {
+	rowIdx, err := strconv.Atoi(r.URL.Query().Get("row"))
+	if err != nil || rowIdx < 1 {
+		http.Error(w, "invalid row parameter", http.StatusBadRequest)
+		return
+	}
+
+	rows, err := h.readCSV()
+	if err != nil {
+		http.Error(w, "failed to read data", http.StatusInternalServerError)
+		return
+	}
+	if rowIdx >= len(rows) {
+		http.NotFound(w, r)
+		return
+	}
+
+	headers := rows[0]
+	record := rowToMap(headers, rows[rowIdx])
+	fields := h.buildFormFields(headers, record)
+
+	// Find the nearest non-empty rows for prev/next navigation.
+	prevIdx := 0
+	for i := rowIdx - 1; i >= 1; i-- {
+		if !isEmptyRow(rows[i]) {
+			prevIdx = i
+			break
+		}
+	}
+	nextIdx := 0
+	for i := rowIdx + 1; i < len(rows); i++ {
+		if !isEmptyRow(rows[i]) {
+			nextIdx = i
+			break
+		}
+	}
+
+	var body template.HTML
+	if h.item.RecordTemplate != "" {
+		body, err = h.renderRecordTemplate(record)
+		if err != nil {
+			http.Error(w, "failed to render record template: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+
+	h.r.Render(w, "view.html", tmpl.PageData{
+		Title:   tmpl.MenuLabel(h.item.Menu, h.item.Name),
+		Fields:  fields,
+		Body:    body,
+		Record:  record,
+		RowIdx:  rowIdx,
+		PrevIdx: prevIdx,
+		NextIdx: nextIdx,
+	})
+}
+
+// renderRecordTemplate parses the configured record_template file as an
+// html/template and executes it with the record values as dot data.
+// Column names become top-level keys: {{.first_name}}, {{.unit_price}}, etc.
+// Values are HTML-escaped automatically by html/template.
+func (h *Handler) renderRecordTemplate(record map[string]string) (template.HTML, error) {
+	src, err := os.ReadFile(h.item.RecordTemplate)
+	if err != nil {
+		return "", fmt.Errorf("read record template: %w", err)
+	}
+
+	t, err := template.New("record").Parse(string(src))
+	if err != nil {
+		return "", fmt.Errorf("parse record template: %w", err)
+	}
+
+	// Convert map[string]string to map[string]interface{} so that html/template
+	// supports both {{.key}} dot access and {{index . "key"}} for unusual names.
+	data := make(map[string]interface{}, len(record))
+	for k, v := range record {
+		data[k] = v
+	}
+
+	var buf bytes.Buffer
+	if err := t.Execute(&buf, data); err != nil {
+		return "", fmt.Errorf("execute record template: %w", err)
+	}
+	return template.HTML(buf.String()), nil
 }
 
 func (h *Handler) create(w http.ResponseWriter, r *http.Request) {

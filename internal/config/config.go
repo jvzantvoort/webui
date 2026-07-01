@@ -30,11 +30,12 @@ type ContentItem struct {
 
 // DataItem defines a data source (CSV with CRUD form).
 type DataItem struct {
-	Name   string `yaml:"name"`
-	Path   string `yaml:"path"`
-	Form   string `yaml:"form"`
-	Schema string `yaml:"schema"`
-	Menu   string `yaml:"menu"`
+	Name           string `yaml:"name"`
+	Path           string `yaml:"path"`
+	Form           string `yaml:"form"`
+	Schema         string `yaml:"schema"`
+	RecordTemplate string `yaml:"record_template"`
+	Menu           string `yaml:"menu"`
 }
 
 // Config is the top-level configuration.
