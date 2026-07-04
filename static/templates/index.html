@@ -7,8 +7,11 @@
   <div class="col-sm-6 col-md-4 col-lg-3">
     <a class="card h-100 text-decoration-none text-dark card-hover" href="{{.URL}}">
       <div class="card-body">
-        <h5 class="card-title mb-1">{{.Label}}</h5>
-        <span class="badge bg-primary">data</span>
+        <h5 class="card-title mb-2">{{.Label}}</h5>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+          <span class="badge bg-primary">data</span>
+          {{with index $.Counts .URL}}<span class="badge bg-light text-muted border">{{.}} rows</span>{{end}}
+        </div>
       </div>
     </a>
   </div>
@@ -17,7 +20,7 @@
   <div class="col-sm-6 col-md-4 col-lg-3">
     <a class="card h-100 text-decoration-none text-dark card-hover" href="{{.URL}}">
       <div class="card-body">
-        <h5 class="card-title mb-1">{{.Label}}</h5>
+        <h5 class="card-title mb-2">{{.Label}}</h5>
         <span class="badge bg-secondary">content</span>
       </div>
     </a>

@@ -17,10 +17,70 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => el.remove(), 4000);
   });
 
-  // Confirm destructive actions on elements with data-confirm.
+  // Confirm destructive actions: data-confirm on a button (including submit buttons).
   document.querySelectorAll('[data-confirm]').forEach(el => {
     el.addEventListener('click', e => {
       if (!confirm(el.dataset.confirm)) e.preventDefault();
+    });
+  });
+
+  // ── Per-table text filter ───────────────────────────────────────────────
+  // Wire up any input with data-table-filter="<table-id>" to filter that table.
+  document.querySelectorAll('[data-table-filter]').forEach(input => {
+    const table = document.getElementById(input.dataset.tableFilter);
+    if (!table) return;
+    input.addEventListener('input', () => {
+      const q = input.value.toLowerCase();
+      table.querySelectorAll('tbody tr').forEach(row => {
+        row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+      });
+    });
+  });
+
+  // ── Sortable table columns ──────────────────────────────────────────────
+  // Tables with class table-sortable get click-to-sort on header cells that
+  // have text content (the empty actions column is skipped automatically).
+  document.querySelectorAll('table.table-sortable').forEach(table => {
+    const ths = Array.from(table.querySelectorAll('thead th'));
+    ths.forEach((th, colIdx) => {
+      if (!th.textContent.trim()) return; // skip the actions column
+
+      th.style.cursor = 'pointer';
+      th.setAttribute('title', 'Click to sort');
+
+      th.addEventListener('click', () => {
+        const tbody = table.querySelector('tbody');
+        // Skip the "No records" colspan row.
+        const rows = Array.from(tbody.querySelectorAll('tr'))
+          .filter(r => r.querySelectorAll('td').length > 1);
+
+        const asc = th.dataset.sortDir !== 'asc';
+
+        // Reset indicators on all headers.
+        ths.forEach(t => {
+          t.dataset.sortDir = '';
+          const icon = t.querySelector('.sort-icon');
+          if (icon) icon.remove();
+        });
+
+        th.dataset.sortDir = asc ? 'asc' : 'desc';
+        const icon = document.createElement('span');
+        icon.className = 'sort-icon ms-1 small opacity-75';
+        icon.textContent = asc ? '▲' : '▼';
+        th.appendChild(icon);
+
+        rows.sort((a, b) => {
+          const ca = a.querySelectorAll('td')[colIdx]?.textContent.trim() ?? '';
+          const cb = b.querySelectorAll('td')[colIdx]?.textContent.trim() ?? '';
+          // Try numeric comparison first.
+          const na = parseFloat(ca.replace(/[^0-9.-]/g, ''));
+          const nb = parseFloat(cb.replace(/[^0-9.-]/g, ''));
+          const cmp = !isNaN(na) && !isNaN(nb) ? na - nb : ca.localeCompare(cb);
+          return asc ? cmp : -cmp;
+        });
+
+        rows.forEach(r => tbody.appendChild(r));
+      });
     });
   });
 });

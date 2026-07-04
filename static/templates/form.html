@@ -17,19 +17,22 @@
           <input type="text" class="form-control bg-light text-muted" id="field-{{.Name}}"
                  name="{{.Name}}" value="{{.Value}}" readonly>
         {{else if .Options}}
-          <select class="form-select" id="field-{{.Name}}" name="{{.Name}}"{{if .Required}} required{{end}}>
+          <select class="form-select{{if .Error}} is-invalid{{end}}" id="field-{{.Name}}"
+                  name="{{.Name}}"{{if .Required}} required{{end}}>
             {{range .Options}}
             <option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{.Value}}</option>
             {{end}}
           </select>
         {{else}}
-          <input type="{{.InputType}}" class="form-control" id="field-{{.Name}}"
-                 name="{{.Name}}" value="{{.Value}}"{{if .Required}} required{{end}}>
+          <input type="{{.InputType}}" class="form-control{{if .Error}} is-invalid{{end}}"
+                 id="field-{{.Name}}" name="{{.Name}}" value="{{.Value}}"
+                 {{if .Required}} required{{end}}>
         {{end}}
+        {{if .Error}}<div class="invalid-feedback d-block">{{.Error}}</div>{{end}}
       </div>
       {{end}}
       <div class="d-flex gap-2 pt-3 border-top mt-3">
-        <button type="submit" class="btn btn-primary">Save changes</button>
+        <button type="submit" class="btn btn-primary">Save</button>
         <a href="." class="btn btn-outline-secondary">Cancel</a>
       </div>
     </form>

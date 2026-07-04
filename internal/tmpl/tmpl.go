@@ -47,6 +47,17 @@ type FormField struct {
 	Required  bool
 	Readonly  bool
 	Options   []FormOption // non-empty → rendered as <select>
+	Error     string       // non-empty when server-side validation failed
+}
+
+// HistoryEntry is one commit from git log, ready for template rendering.
+type HistoryEntry struct {
+	Hash    string
+	Short   string
+	Author  string
+	RelDate string // human-readable relative date ("3 hours ago")
+	DateFmt string // full formatted date for tooltip ("Mon 02 Jan 2006 15:04 MST")
+	Subject string
 }
 
 // PageData is the template data passed to every page.
@@ -62,6 +73,8 @@ type PageData struct {
 	PrevIdx int               // view pages: row index of the previous record (0 = none)
 	NextIdx int               // view pages: row index of the next record (0 = none)
 	Record  map[string]string // view pages: column→value map for the current record
+	History []HistoryEntry    // history page: git log entries for the file
+	Counts  map[string]int   // dashboard: data-item URL → non-empty row count
 }
 
 // Renderer parses and executes page templates, injecting shared nav data.
@@ -73,7 +86,7 @@ type Renderer struct {
 	nav   Nav
 }
 
-var pageNames = []string{"index.html", "content.html", "data.html", "form.html", "view.html"}
+var pageNames = []string{"index.html", "content.html", "data.html", "form.html", "view.html", "history.html"}
 
 // New creates a Renderer from the embedded template FS and the app config.
 func New(cfg *config.Config) (*Renderer, error) {

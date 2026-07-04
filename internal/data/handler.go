@@ -11,8 +11,10 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/jvzantvoort/webui/internal/config"
+	"github.com/jvzantvoort/webui/internal/git"
 	"github.com/jvzantvoort/webui/internal/schema"
 	"github.com/jvzantvoort/webui/internal/tmpl"
 )
@@ -33,10 +35,14 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		switch action {
+		case "new":
+			h.newForm(w, r)
 		case "view":
 			h.view(w, r)
 		case "edit":
 			h.editForm(w, r)
+		case "history":
+			h.history(w, r)
 		default:
 			h.list(w, r)
 		}
@@ -44,6 +50,8 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		switch action {
 		case "edit":
 			h.saveEdit(w, r)
+		case "delete":
+			h.delete(w, r)
 		default:
 			h.create(w, r)
 		}
@@ -76,6 +84,81 @@ func (h *Handler) list(w http.ResponseWriter, r *http.Request) {
 		Headers: headers,
 		Rows:    indexed,
 	})
+}
+
+// newForm renders an empty form for creating a new record.
+func (h *Handler) newForm(w http.ResponseWriter, r *http.Request) {
+	rows, err := h.readCSV()
+	if err != nil {
+		http.Error(w, "failed to read data", http.StatusInternalServerError)
+		return
+	}
+	var headers []string
+	if len(rows) > 0 {
+		headers = rows[0]
+	}
+	fields := h.buildFormFields(headers, nil)
+	// Show auto-generated readonly fields as placeholders.
+	for i := range fields {
+		if fields[i].Readonly {
+			fields[i].Value = h.nextID(headers, rows, fields[i].Name)
+		}
+	}
+	h.r.Render(w, "form.html", tmpl.PageData{
+		Title:   "New — " + tmpl.MenuLabel(h.item.Menu, h.item.Name),
+		Fields:  fields,
+		PostURL: "?action=new",
+	})
+}
+
+// create validates the submitted form and appends a new row to the CSV.
+func (h *Handler) create(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "failed to parse form", http.StatusBadRequest)
+		return
+	}
+
+	rows, err := h.readCSV()
+	if err != nil {
+		http.Error(w, "failed to read data", http.StatusInternalServerError)
+		return
+	}
+	var headers []string
+	if len(rows) > 0 {
+		headers = rows[0]
+	}
+
+	submitted := make(map[string]string, len(headers))
+	for _, col := range headers {
+		submitted[col] = r.FormValue(col)
+	}
+	fields := h.buildFormFields(headers, submitted)
+	if !validateFields(fields) {
+		h.r.Render(w, "form.html", tmpl.PageData{
+			Title:   "New — " + tmpl.MenuLabel(h.item.Menu, h.item.Name),
+			Fields:  fields,
+			PostURL: "?action=new",
+		})
+		return
+	}
+
+	readOnly := h.readonlySet()
+	newRow := make([]string, len(headers))
+	for i, col := range headers {
+		if readOnly[col] {
+			newRow[i] = h.nextID(headers, rows, col)
+		} else {
+			newRow[i] = r.FormValue(col)
+		}
+	}
+	rows = append(rows, newRow)
+
+	if err := h.writeCSV(rows); err != nil {
+		http.Error(w, "failed to save data", http.StatusInternalServerError)
+		return
+	}
+	_ = git.CommitFile(".", h.item.Path, "add record to "+filepath.Base(h.item.Path))
+	http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
 }
 
 // editForm renders a pre-filled form for the row identified by the "row" query param.
@@ -134,11 +217,31 @@ func (h *Handler) saveEdit(w http.ResponseWriter, r *http.Request) {
 	headers := rows[0]
 	readOnly := h.readonlySet()
 
+	// Build submitted-value map, preserving readonly originals for validation.
+	submitted := make(map[string]string, len(headers))
+	for i, col := range headers {
+		if readOnly[col] && i < len(rows[rowIdx]) {
+			submitted[col] = rows[rowIdx][i]
+		} else {
+			submitted[col] = r.FormValue(col)
+		}
+	}
+	fields := h.buildFormFields(headers, submitted)
+	if !validateFields(fields) {
+		h.r.Render(w, "form.html", tmpl.PageData{
+			Title:   "Edit — " + tmpl.MenuLabel(h.item.Menu, h.item.Name),
+			Fields:  fields,
+			RowIdx:  rowIdx,
+			PostURL: fmt.Sprintf("?action=edit&row=%d", rowIdx),
+		})
+		return
+	}
+
 	newRow := make([]string, len(headers))
 	for i, col := range headers {
 		if readOnly[col] {
 			if i < len(rows[rowIdx]) {
-				newRow[i] = rows[rowIdx][i] // preserve original value
+				newRow[i] = rows[rowIdx][i]
 			}
 		} else {
 			newRow[i] = r.FormValue(col)
@@ -150,7 +253,35 @@ func (h *Handler) saveEdit(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "failed to save data", http.StatusInternalServerError)
 		return
 	}
+	_ = git.CommitFile(".", h.item.Path, fmt.Sprintf("edit row %d in %s", rowIdx, filepath.Base(h.item.Path)))
+	http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
+}
 
+// delete removes the row at rowIdx and rewrites the CSV.
+func (h *Handler) delete(w http.ResponseWriter, r *http.Request) {
+	rowIdx, err := strconv.Atoi(r.URL.Query().Get("row"))
+	if err != nil || rowIdx < 1 {
+		http.Error(w, "invalid row parameter", http.StatusBadRequest)
+		return
+	}
+
+	rows, err := h.readCSV()
+	if err != nil {
+		http.Error(w, "failed to read data", http.StatusInternalServerError)
+		return
+	}
+	if rowIdx >= len(rows) {
+		http.NotFound(w, r)
+		return
+	}
+
+	rows = append(rows[:rowIdx], rows[rowIdx+1:]...)
+
+	if err := h.writeCSV(rows); err != nil {
+		http.Error(w, "failed to delete row", http.StatusInternalServerError)
+		return
+	}
+	_ = git.CommitFile(".", h.item.Path, fmt.Sprintf("delete row %d from %s", rowIdx, filepath.Base(h.item.Path)))
 	http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
 }
 
@@ -177,7 +308,6 @@ func (h *Handler) view(w http.ResponseWriter, r *http.Request) {
 	record := rowToMap(headers, rows[rowIdx])
 	fields := h.buildFormFields(headers, record)
 
-	// Find the nearest non-empty rows for prev/next navigation.
 	prevIdx := 0
 	for i := rowIdx - 1; i >= 1; i-- {
 		if !isEmptyRow(rows[i]) {
@@ -213,10 +343,30 @@ func (h *Handler) view(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// history renders the git log for the CSV file.
+func (h *Handler) history(w http.ResponseWriter, r *http.Request) {
+	commits, _ := git.FileLog(".", h.item.Path, 100)
+
+	entries := make([]tmpl.HistoryEntry, 0, len(commits))
+	for _, c := range commits {
+		entries = append(entries, tmpl.HistoryEntry{
+			Hash:    c.Hash,
+			Short:   c.Short,
+			Author:  c.Author,
+			RelDate: c.RelativeDate(),
+			DateFmt: c.DateFmt(),
+			Subject: c.Subject,
+		})
+	}
+
+	h.r.Render(w, "history.html", tmpl.PageData{
+		Title:   "History — " + tmpl.MenuLabel(h.item.Menu, h.item.Name),
+		History: entries,
+	})
+}
+
 // renderRecordTemplate parses the configured record_template file as an
 // html/template and executes it with the record values as dot data.
-// Column names become top-level keys: {{.first_name}}, {{.unit_price}}, etc.
-// Values are HTML-escaped automatically by html/template.
 func (h *Handler) renderRecordTemplate(record map[string]string) (template.HTML, error) {
 	src, err := os.ReadFile(h.item.RecordTemplate)
 	if err != nil {
@@ -228,8 +378,6 @@ func (h *Handler) renderRecordTemplate(record map[string]string) (template.HTML,
 		return "", fmt.Errorf("parse record template: %w", err)
 	}
 
-	// Convert map[string]string to map[string]interface{} so that html/template
-	// supports both {{.key}} dot access and {{index . "key"}} for unusual names.
 	data := make(map[string]interface{}, len(record))
 	for k, v := range record {
 		data[k] = v
@@ -242,8 +390,83 @@ func (h *Handler) renderRecordTemplate(record map[string]string) (template.HTML,
 	return template.HTML(buf.String()), nil
 }
 
-func (h *Handler) create(w http.ResponseWriter, r *http.Request) {
-	http.Error(w, "not implemented", http.StatusNotImplemented)
+// validateFields annotates fields with Error messages and returns true when all
+// non-readonly fields pass their type and required constraints.
+func validateFields(fields []tmpl.FormField) bool {
+	valid := true
+	for i, f := range fields {
+		if f.Readonly {
+			continue
+		}
+		if f.Required && strings.TrimSpace(f.Value) == "" {
+			fields[i].Error = "Required"
+			valid = false
+			continue
+		}
+		if f.Value == "" {
+			continue
+		}
+		switch f.InputType {
+		case "number":
+			if _, err := strconv.ParseFloat(f.Value, 64); err != nil {
+				fields[i].Error = "Must be a number"
+				valid = false
+			}
+		case "email":
+			at := strings.Index(f.Value, "@")
+			if at < 1 || at == len(f.Value)-1 {
+				fields[i].Error = "Must be a valid email address"
+				valid = false
+			}
+		case "date":
+			if _, err := time.Parse("2006-01-02", f.Value); err != nil {
+				fields[i].Error = "Must be a date (YYYY-MM-DD)"
+				valid = false
+			}
+		}
+	}
+	return valid
+}
+
+// nextID returns the next integer ID for a readonly auto-increment column.
+// It scans existing data rows, finds the maximum integer value, and returns max+1.
+func (h *Handler) nextID(headers []string, rows [][]string, colName string) string {
+	colIdx := -1
+	for i, col := range headers {
+		if col == colName {
+			colIdx = i
+			break
+		}
+	}
+	if colIdx < 0 || len(rows) < 2 {
+		return "1"
+	}
+	max := 0
+	for _, row := range rows[1:] {
+		if colIdx < len(row) {
+			if n, err := strconv.Atoi(strings.TrimSpace(row[colIdx])); err == nil && n > max {
+				max = n
+			}
+		}
+	}
+	return strconv.Itoa(max + 1)
+}
+
+// CountRows returns the number of non-empty data rows in the CSV at path
+// (header row excluded). Returns 0 on error.
+func CountRows(path string) int {
+	h := &Handler{item: config.DataItem{Path: path}}
+	rows, err := h.readCSV()
+	if err != nil || len(rows) == 0 {
+		return 0
+	}
+	n := 0
+	for _, row := range rows[1:] {
+		if !isEmptyRow(row) {
+			n++
+		}
+	}
+	return n
 }
 
 // buildFormFields returns form fields driven by the schema if one is configured,
@@ -351,16 +574,13 @@ func (h *Handler) readCSV() ([][]string, error) {
 
 	br := bufio.NewReader(f)
 	// Strip UTF-8 BOM if present (bytes 0xEF 0xBB 0xBF).
-	// Excel and other Windows tools prepend a BOM to CSV exports, which ends
-	// up embedded in the first header name. Map lookups by the plain column
-	// name then return "" and the edit form appears empty.
 	if bom, err := br.Peek(3); err == nil && bom[0] == 0xEF && bom[1] == 0xBB && bom[2] == 0xBF {
 		_, _ = br.Discard(3)
 	}
 
 	cr := csv.NewReader(br)
-	cr.FieldsPerRecord = -1  // allow rows with fewer/more fields than the header
-	cr.LazyQuotes = true     // accept unescaped quotes in field values
+	cr.FieldsPerRecord = -1
+	cr.LazyQuotes = true
 	cr.TrimLeadingSpace = true
 
 	rows, err := cr.ReadAll()
@@ -368,8 +588,6 @@ func (h *Handler) readCSV() ([][]string, error) {
 		return nil, err
 	}
 
-	// Trim all cell values: removes trailing \r (Windows line endings that
-	// slip through), extra surrounding whitespace, and non-breaking spaces.
 	for i, row := range rows {
 		for j, cell := range row {
 			rows[i][j] = strings.TrimSpace(cell)
@@ -379,7 +597,6 @@ func (h *Handler) readCSV() ([][]string, error) {
 }
 
 // isEmptyRow reports whether every cell in the row is an empty string.
-// Used to skip blank lines that real-world CSV files often contain.
 func isEmptyRow(row []string) bool {
 	for _, v := range row {
 		if v != "" {
@@ -397,7 +614,7 @@ func (h *Handler) writeCSV(rows [][]string) error {
 		return err
 	}
 	tmpName := tmp.Name()
-	defer os.Remove(tmpName) // no-op if rename succeeded
+	defer os.Remove(tmpName)
 
 	w := csv.NewWriter(tmp)
 	if err := w.WriteAll(rows); err != nil {

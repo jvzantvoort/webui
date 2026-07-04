@@ -138,15 +138,135 @@ func TestSaveEditInvalidRow(t *testing.T) {
 	}
 }
 
-func TestCreateNotImplemented(t *testing.T) {
-	h := NewHandler(config.DataItem{Name: "test", Path: "/dev/null"}, newTestRenderer(t))
+func TestCreateRecord(t *testing.T) {
+	_, csvPath := writeCSVFile(t, testCSV)
+	h := NewHandler(config.DataItem{Name: "test", Path: csvPath}, newTestRenderer(t))
 
-	req := httptest.NewRequest(http.MethodPost, "/data/test/", nil)
+	form := url.Values{"name": {"gamma"}, "value": {"3"}}
+	req := httptest.NewRequest(http.MethodPost, "/data/test/", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, req)
 
-	if w.Code != http.StatusNotImplemented {
-		t.Errorf("status = %d, want %d", w.Code, http.StatusNotImplemented)
+	if w.Code != http.StatusSeeOther {
+		t.Fatalf("status = %d, want %d (redirect)", w.Code, http.StatusSeeOther)
+	}
+
+	updated, err := os.ReadFile(csvPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(updated), "gamma") {
+		t.Errorf("CSV missing new row 'gamma': %s", updated)
+	}
+	// Existing rows must still be present.
+	if !strings.Contains(string(updated), "alpha") {
+		t.Errorf("existing row 'alpha' missing after create: %s", updated)
+	}
+}
+
+func TestNewFormRendered(t *testing.T) {
+	_, csvPath := writeCSVFile(t, testCSV)
+	h := NewHandler(config.DataItem{Name: "test", Path: csvPath}, newTestRenderer(t))
+
+	req := httptest.NewRequest(http.MethodGet, "/data/test/?action=new", nil)
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("status = %d, want %d", w.Code, http.StatusOK)
+	}
+	if !strings.Contains(w.Body.String(), "action=new") {
+		t.Errorf("form action URL missing: %s", w.Body.String())
+	}
+}
+
+func TestCreateValidationRequired(t *testing.T) {
+	// A required field that is empty should re-render the form (not redirect).
+	dir := t.TempDir()
+	csvPath := filepath.Join(dir, "data.csv")
+	if err := os.WriteFile(csvPath, []byte("name,value\nalpha,1\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	schemaPath := filepath.Join(dir, "schema.yml")
+	schemaYAML := "fields:\n  - name: name\n    type: string\n    label: Name\n    required: true\n  - name: value\n    type: string\n    label: Value\n"
+	if err := os.WriteFile(schemaPath, []byte(schemaYAML), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	h := NewHandler(config.DataItem{Name: "test", Path: csvPath, Schema: schemaPath}, newTestRenderer(t))
+
+	// Submit with empty required field.
+	form := url.Values{"name": {""}, "value": {"3"}}
+	req := httptest.NewRequest(http.MethodPost, "/data/test/", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, req)
+
+	if w.Code == http.StatusSeeOther {
+		t.Error("validation failure should not redirect")
+	}
+	if !strings.Contains(w.Body.String(), "Required") {
+		t.Errorf("form should show Required error: %s", w.Body.String())
+	}
+}
+
+func TestDeleteRow(t *testing.T) {
+	_, csvPath := writeCSVFile(t, testCSV)
+	h := NewHandler(config.DataItem{Name: "test", Path: csvPath}, newTestRenderer(t))
+
+	req := httptest.NewRequest(http.MethodPost, "/data/test/?action=delete&row=1", nil)
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, req)
+
+	if w.Code != http.StatusSeeOther {
+		t.Fatalf("status = %d, want %d (redirect)", w.Code, http.StatusSeeOther)
+	}
+
+	updated, err := os.ReadFile(csvPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(updated), "alpha") {
+		t.Errorf("deleted row 'alpha' still present: %s", updated)
+	}
+	// Row 2 (beta) should still be there.
+	if !strings.Contains(string(updated), "beta") {
+		t.Errorf("row 'beta' missing after delete of row 1: %s", updated)
+	}
+}
+
+func TestDeleteInvalidRow(t *testing.T) {
+	_, csvPath := writeCSVFile(t, testCSV)
+	h := NewHandler(config.DataItem{Name: "test", Path: csvPath}, newTestRenderer(t))
+
+	for _, param := range []string{"0", "999", "abc", ""} {
+		req := httptest.NewRequest(http.MethodPost, "/data/test/?action=delete&row="+param, nil)
+		w := httptest.NewRecorder()
+		h.ServeHTTP(w, req)
+		if w.Code == http.StatusSeeOther {
+			t.Errorf("delete row=%q: should not redirect on invalid row", param)
+		}
+	}
+}
+
+func TestCountRows(t *testing.T) {
+	_, csvPath := writeCSVFile(t, testCSV) // header + 2 data rows
+	if n := CountRows(csvPath); n != 2 {
+		t.Errorf("CountRows = %d, want 2", n)
+	}
+}
+
+func TestCountRowsEmpty(t *testing.T) {
+	_, csvPath := writeCSVFile(t, "name,value\n")
+	if n := CountRows(csvPath); n != 0 {
+		t.Errorf("CountRows empty = %d, want 0", n)
+	}
+}
+
+func TestCountRowsMissing(t *testing.T) {
+	if n := CountRows("/nonexistent/data.csv"); n != 0 {
+		t.Errorf("CountRows missing = %d, want 0", n)
 	}
 }
 

@@ -3,11 +3,21 @@
 {{define "content"}}
 <div class="d-flex align-items-center justify-content-between mb-3">
   <h1 class="h3 mb-0">{{.Title}}</h1>
-  <a href="?action=new" class="btn btn-primary btn-sm">+ New</a>
+  <div class="d-flex gap-2">
+    <a href="?action=history" class="btn btn-outline-secondary btn-sm">History</a>
+    <a href="?action=new" class="btn btn-primary btn-sm">+ New</a>
+  </div>
 </div>
+
+<div class="mb-2">
+  <input type="text" class="form-control form-control-sm"
+         data-table-filter="data-table"
+         placeholder="Filter records…" aria-label="Filter records">
+</div>
+
 <div class="card shadow-sm">
   <div class="table-responsive">
-    <table class="table table-hover table-striped mb-0">
+    <table id="data-table" class="table table-hover table-striped table-sortable mb-0">
       <thead class="table-dark">
         <tr>
           {{range .Headers}}<th scope="col">{{.}}</th>{{end}}
@@ -21,7 +31,10 @@
           <td class="text-end text-nowrap">
             <a href="?action=view&row={{.Idx}}" class="btn btn-outline-info btn-sm">View</a>
             <a href="?action=edit&row={{.Idx}}" class="btn btn-outline-secondary btn-sm ms-1">Edit</a>
-            <button class="btn btn-outline-danger btn-sm ms-1" data-confirm="Delete this row?">Delete</button>
+            <form method="POST" action="?action=delete&row={{.Idx}}" class="d-inline">
+              <button type="submit" class="btn btn-outline-danger btn-sm ms-1"
+                      data-confirm="Delete this row?">Delete</button>
+            </form>
           </td>
         </tr>
         {{else}}

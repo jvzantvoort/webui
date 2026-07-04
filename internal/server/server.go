@@ -55,7 +55,11 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	s.renderer.Render(w, "index.html", tmpl.PageData{Title: "webui"})
+	counts := make(map[string]int, len(s.cfg.Data))
+	for _, item := range s.cfg.Data {
+		counts["/data/"+item.Name+"/"] = data.CountRows(item.Path)
+	}
+	s.renderer.Render(w, "index.html", tmpl.PageData{Title: "webui", Counts: counts})
 }
 
 // handleShutdown responds immediately then gracefully stops the server.
