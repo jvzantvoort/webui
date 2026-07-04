@@ -12,6 +12,12 @@ content:
     content: markdown
     serve_images: false
     index: index.md
+    ignore:
+      - "*.jpg"
+      - "*.jpeg"
+      - "*.gif"
+      - "*.png"
+      - "*.svg"
     menu: "Help"
 
 data:

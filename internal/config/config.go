@@ -21,12 +21,13 @@ type BrowserConfig struct {
 
 // ContentItem defines a content source (markdown folder, static files).
 type ContentItem struct {
-	Name        string `yaml:"name"`
-	Path        string `yaml:"path"`
-	Content     string `yaml:"content"`
-	ServeImages bool   `yaml:"serve_images"`
-	Index       string `yaml:"index"` // file served at the section root; defaults to README.md
-	Menu        string `yaml:"menu"`
+	Name        string   `yaml:"name"`
+	Path        string   `yaml:"path"`
+	Content     string   `yaml:"content"`
+	ServeImages bool     `yaml:"serve_images"`
+	Index       string   `yaml:"index"`  // file served at the section root; defaults to README.md
+	Ignore      []string `yaml:"ignore"` // glob patterns excluded from the nav listing
+	Menu        string   `yaml:"menu"`
 }
 
 // DataItem defines a data source (CSV with CRUD form).

@@ -27,7 +27,38 @@ content:
     content: markdown   # "markdown" renders .md files; anything else serves raw
     serve_images: true  # also serve image files (png, jpg, gif, svg, webp)
     index: README.md    # file served at the section root; defaults to README.md
+    ignore:             # glob patterns excluded from the nav listing
+      - "*.jpg"
+      - "*.png"
     menu: "Help"        # label shown in the navigation bar
+```
+
+### ignore
+
+`ignore` is an optional list of glob patterns.  Any file whose name matches
+one of the patterns is excluded from the dropdown nav listing.  The file can
+still be fetched directly by URL — ignore only affects what is shown in the
+navigation.
+
+Patterns follow Go's [`filepath.Match`](https://pkg.go.dev/path/filepath#Match)
+syntax:
+
+| Pattern | Matches |
+|---------|---------|
+| `*.jpg` | any filename ending in `.jpg` |
+| `draft-*` | any filename starting with `draft-` |
+| `README.md` | exactly `README.md` |
+
+Pattern matching is **case-sensitive** on Linux and macOS.
+
+```yaml
+ignore:
+  - "*.jpg"
+  - "*.jpeg"
+  - "*.gif"
+  - "*.png"
+  - "*.svg"
+  - "draft-*"
 ```
 
 ### index

@@ -193,6 +193,88 @@ func TestNoDropdownWithSingleFile(t *testing.T) {
 	}
 }
 
+// ── ignore-pattern tests ──────────────────────────────────────────────────
+
+func TestIgnoredFilesAbsentFromListing(t *testing.T) {
+	dir := t.TempDir()
+	for _, name := range []string{"guide.md", "notes.md", "photo.jpg", "diagram.gif"} {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte("x"), 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	r, err := tmpl.New(&config.Config{
+		Content: []config.ContentItem{
+			{Name: "docs", Path: dir, Content: "markdown",
+				Ignore: []string{"*.jpg", "*.gif"}, Menu: "Docs"},
+		},
+	})
+	if err != nil {
+		t.Fatalf("tmpl.New: %v", err)
+	}
+
+	h := NewHandler(config.ContentItem{
+		Name: "docs", Path: dir, Content: "markdown",
+		Ignore: []string{"*.jpg", "*.gif"}, Menu: "Docs",
+	}, r)
+	req := httptest.NewRequest(http.MethodGet, "/docs/guide.md", nil)
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, req)
+
+	body := w.Body.String()
+	if strings.Contains(body, "photo.jpg") {
+		t.Errorf("ignored file photo.jpg should not appear in nav listing")
+	}
+	if strings.Contains(body, "diagram.gif") {
+		t.Errorf("ignored file diagram.gif should not appear in nav listing")
+	}
+	// The non-ignored markdown files must still be present.
+	if !strings.Contains(body, "notes") {
+		t.Errorf("notes.md should appear in nav listing")
+	}
+}
+
+func TestIgnoredFilesStillServable(t *testing.T) {
+	// Ignore only affects the listing; ignored files can still be fetched directly.
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "photo.jpg"), []byte("JFIF"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	h := NewHandler(config.ContentItem{
+		Name: "docs", Path: dir, Content: "static",
+		Ignore: []string{"*.jpg"},
+	}, newTestRenderer(t))
+	req := httptest.NewRequest(http.MethodGet, "/docs/photo.jpg", nil)
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("ignored file should still be directly servable, got status %d", w.Code)
+	}
+}
+
+func TestIsIgnored(t *testing.T) {
+	h := &Handler{item: config.ContentItem{Ignore: []string{"*.jpg", "draft-*", "README.md"}}}
+
+	cases := []struct {
+		name    string
+		ignored bool
+	}{
+		{"photo.jpg", true},
+		{"photo.JPG", false}, // filepath.Match is case-sensitive on Linux
+		{"draft-notes.md", true},
+		{"README.md", true},
+		{"guide.md", false},
+		{"", false},
+	}
+	for _, tc := range cases {
+		if got := h.isIgnored(tc.name); got != tc.ignored {
+			t.Errorf("isIgnored(%q) = %v, want %v", tc.name, got, tc.ignored)
+		}
+	}
+}
+
 // ── GFM extension tests ───────────────────────────────────────────────────
 
 func TestServeMarkdownTable(t *testing.T) {

@@ -105,8 +105,21 @@ func (h *Handler) enrichedNav() tmpl.Nav {
 	return nav
 }
 
+// isIgnored reports whether name matches any of the configured ignore patterns.
+// Patterns follow filepath.Match syntax (e.g. "*.jpg", "draft-*").
+// A malformed pattern is silently skipped.
+func (h *Handler) isIgnored(name string) bool {
+	for _, pattern := range h.item.Ignore {
+		if matched, err := filepath.Match(pattern, name); err == nil && matched {
+			return true
+		}
+	}
+	return false
+}
+
 // listFiles scans the content directory and returns a NavItem for each
-// servable file, sorted alphabetically.
+// servable file that is not hidden and does not match an ignore pattern,
+// sorted alphabetically.
 func (h *Handler) listFiles() []tmpl.NavItem {
 	entries, err := os.ReadDir(h.item.Path)
 	if err != nil {
@@ -116,7 +129,7 @@ func (h *Handler) listFiles() []tmpl.NavItem {
 	base := "/" + h.item.Name + "/"
 	var items []tmpl.NavItem
 	for _, e := range entries {
-		if e.IsDir() || strings.HasPrefix(e.Name(), ".") {
+		if e.IsDir() || strings.HasPrefix(e.Name(), ".") || h.isIgnored(e.Name()) {
 			continue
 		}
 		items = append(items, tmpl.NavItem{
