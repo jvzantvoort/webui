@@ -44,8 +44,9 @@ func TestServeMarkdown(t *testing.T) {
 }
 
 func TestServeDefaultIndex(t *testing.T) {
+	// Default index is README.md when no Index field is set.
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "index.md"), []byte("# Index"), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "README.md"), []byte("# Readme"), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -56,6 +57,43 @@ func TestServeDefaultIndex(t *testing.T) {
 
 	if w.Code != http.StatusOK {
 		t.Errorf("status = %d, want %d", w.Code, http.StatusOK)
+	}
+	if !strings.Contains(w.Body.String(), "Readme") {
+		t.Errorf("body should contain README.md content: %s", w.Body.String())
+	}
+}
+
+func TestServeConfiguredIndex(t *testing.T) {
+	// When Index is explicitly set, that file is served at the section root.
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "index.md"), []byte("# Configured index"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	h := NewHandler(config.ContentItem{Name: "help", Path: dir, Content: "markdown", Index: "index.md"}, newTestRenderer(t))
+	req := httptest.NewRequest(http.MethodGet, "/help/", nil)
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("status = %d, want %d", w.Code, http.StatusOK)
+	}
+	if !strings.Contains(w.Body.String(), "Configured index") {
+		t.Errorf("body should contain configured index content: %s", w.Body.String())
+	}
+}
+
+func TestServeDefaultIndexMissing(t *testing.T) {
+	// When the index file is absent the handler returns 404, not a crash.
+	dir := t.TempDir()
+
+	h := NewHandler(config.ContentItem{Name: "help", Path: dir, Content: "markdown"}, newTestRenderer(t))
+	req := httptest.NewRequest(http.MethodGet, "/help/", nil)
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, req)
+
+	if w.Code != http.StatusNotFound {
+		t.Errorf("status = %d, want %d", w.Code, http.StatusNotFound)
 	}
 }
 

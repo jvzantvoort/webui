@@ -25,6 +25,7 @@ type ContentItem struct {
 	Path        string `yaml:"path"`
 	Content     string `yaml:"content"`
 	ServeImages bool   `yaml:"serve_images"`
+	Index       string `yaml:"index"` // file served at the section root; defaults to README.md
 	Menu        string `yaml:"menu"`
 }
 

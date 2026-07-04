@@ -11,6 +11,7 @@ content:
     path: help/
     content: markdown
     serve_images: false
+    index: index.md
     menu: "Help"
 
 data:

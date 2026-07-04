@@ -31,11 +31,19 @@ func NewHandler(item config.ContentItem, r *tmpl.Renderer) http.Handler {
 	}
 }
 
+// indexFile returns the filename served when the section root is requested.
+func (h *Handler) indexFile() string {
+	if h.item.Index != "" {
+		return h.item.Index
+	}
+	return "README.md"
+}
+
 func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	prefix := "/" + h.item.Name + "/"
 	rel := strings.TrimPrefix(req.URL.Path, prefix)
 	if rel == "" {
-		rel = "index.md"
+		rel = h.indexFile()
 	}
 
 	fpath := filepath.Join(h.item.Path, filepath.Clean(rel))

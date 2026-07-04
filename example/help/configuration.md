@@ -26,7 +26,26 @@ content:
     path: help/         # path relative to the working directory
     content: markdown   # "markdown" renders .md files; anything else serves raw
     serve_images: true  # also serve image files (png, jpg, gif, svg, webp)
+    index: README.md    # file served at the section root; defaults to README.md
     menu: "Help"        # label shown in the navigation bar
+```
+
+### index
+
+The `index` field controls which file is served when a visitor navigates to the
+section root (e.g. `/help/`).  If omitted the default is `README.md`, which
+works well for git repositories where documentation conventionally lives in
+that file.
+
+Set it explicitly when your folder uses a different convention:
+
+```yaml
+content:
+  - name: "wiki"
+    path: wiki/
+    content: markdown
+    index: home.md      # /wiki/ → wiki/home.md
+    menu: "Wiki"
 ```
 
 ## CSV file format
