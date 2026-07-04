@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/yuin/goldmark"
+	"github.com/yuin/goldmark/extension"
 
 	"github.com/jvzantvoort/webui/internal/config"
 	"github.com/jvzantvoort/webui/internal/tmpl"
@@ -26,8 +27,15 @@ type Handler struct {
 func NewHandler(item config.ContentItem, r *tmpl.Renderer) http.Handler {
 	return &Handler{
 		item: item,
-		md:   goldmark.New(),
-		r:    r,
+		md: goldmark.New(
+			goldmark.WithExtensions(
+				extension.Table,
+				extension.Strikethrough,
+				extension.Linkify,
+				extension.TaskList,
+			),
+		),
+		r: r,
 	}
 }
 

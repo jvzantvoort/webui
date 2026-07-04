@@ -193,6 +193,69 @@ func TestNoDropdownWithSingleFile(t *testing.T) {
 	}
 }
 
+// ── GFM extension tests ───────────────────────────────────────────────────
+
+func TestServeMarkdownTable(t *testing.T) {
+	dir := t.TempDir()
+	md := "| Name  | Value |\n|-------|-------|\n| alpha | 1     |\n| beta  | 2     |\n"
+	if err := os.WriteFile(filepath.Join(dir, "table.md"), []byte(md), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	h := NewHandler(config.ContentItem{Name: "docs", Path: dir, Content: "markdown"}, newTestRenderer(t))
+	req := httptest.NewRequest(http.MethodGet, "/docs/table.md", nil)
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d", w.Code)
+	}
+	body := w.Body.String()
+	if !strings.Contains(body, "<table>") {
+		t.Errorf("markdown table not rendered as <table>: %s", body)
+	}
+	if !strings.Contains(body, "<th>") {
+		t.Errorf("markdown table missing <th> header cells: %s", body)
+	}
+}
+
+func TestServeMarkdownStrikethrough(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "s.md"), []byte("~~removed~~"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	h := NewHandler(config.ContentItem{Name: "docs", Path: dir, Content: "markdown"}, newTestRenderer(t))
+	req := httptest.NewRequest(http.MethodGet, "/docs/s.md", nil)
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, req)
+
+	if !strings.Contains(w.Body.String(), "<del>") {
+		t.Errorf("strikethrough not rendered as <del>: %s", w.Body.String())
+	}
+}
+
+func TestServeMarkdownTaskList(t *testing.T) {
+	dir := t.TempDir()
+	md := "- [x] done\n- [ ] todo\n"
+	if err := os.WriteFile(filepath.Join(dir, "tasks.md"), []byte(md), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	h := NewHandler(config.ContentItem{Name: "docs", Path: dir, Content: "markdown"}, newTestRenderer(t))
+	req := httptest.NewRequest(http.MethodGet, "/docs/tasks.md", nil)
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, req)
+
+	body := w.Body.String()
+	if !strings.Contains(body, `type="checkbox"`) {
+		t.Errorf("task list not rendered with checkboxes: %s", body)
+	}
+	if !strings.Contains(body, "checked") {
+		t.Errorf("completed task not rendered as checked: %s", body)
+	}
+}
+
 func TestFileLabel(t *testing.T) {
 	tests := []struct {
 		in, want string
